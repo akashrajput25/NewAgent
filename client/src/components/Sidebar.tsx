@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, MessageSquare, Search, Download, Pin, Hexagon, Settings, User } from 'lucide-react';
 import { useChatStore } from '../stores/chatStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { createConversation, deleteConversation, getConversation, exportConversation } from '../lib/api';
+import { createConversation, deleteConversation, getConversation, getConversations, exportConversation } from '../lib/api';
 import { formatDate } from '../lib/utils';
 import { toast } from '../lib/toast';
 import type { Conversation } from '../types';
@@ -40,8 +40,11 @@ export function Sidebar({ isOpen, onClose, onOpenProfile, onOpenSettings }: { is
       if (!conv || typeof conv.id !== 'number') {
         throw new Error('Invalid conversation created');
       }
-      setConversations([conv, ...conversations]);
+      // Fetch the latest conversations from the backend
+      const updatedConversations = await getConversations();
+      setConversations(updatedConversations);
       setCurrentConversation(conv);
+      // Optionally fetch messages for the new conversation (should be empty)
       setMessages([]);
       onClose();
     } catch (err) {
