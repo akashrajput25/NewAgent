@@ -141,16 +141,15 @@ router.post('/:conversationId/stream', async (req, res, next) => {
           }
         : { role: 'user' as const, content: message };
 
-      // Debug log: print baseURL and model
+
+      // Debug log: print baseURL, model, and partial API key
       console.log('[DEBUG] OpenAI client baseURL:', config.aiBaseUrl);
       console.log('[DEBUG] OpenAI client model:', model || config.aiModel);
-
-      // Patch OpenAI client to log the full request URL
-      const origFetch = client.fetch;
-      client.fetch = async (...args) => {
-        console.log('[DEBUG] OpenAI fetch URL:', args[0]);
-        return origFetch.apply(client, args);
-      };
+      if (config.openaiApiKey) {
+        console.log('[DEBUG] OpenAI API key:', config.openaiApiKey.slice(0, 4) + '...' + config.openaiApiKey.slice(-4));
+      } else {
+        console.log('[DEBUG] OpenAI API key: none');
+      }
 
       const stream = await client.chat.completions.create({
         model: model || config.aiModel,
