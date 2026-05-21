@@ -1,10 +1,14 @@
 import dotenv from 'dotenv';
+import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = join(__dirname, '../.env');
+
+if (process.env.NODE_ENV !== 'production' && existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+}
 
 export const config = {
   port: parseInt(process.env.PORT || '3001', 10),

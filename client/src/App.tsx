@@ -85,6 +85,9 @@ export default function App() {
         try {
           const { createConversation } = await import('./lib/api');
           const conv = await createConversation(undefined, personality);
+          if (!conv || typeof conv.id !== 'number') {
+            throw new Error('Invalid conversation created');
+          }
           const { conversations, setConversations, setCurrentConversation, setMessages } = useChatStore.getState();
           setConversations([conv, ...conversations]);
           setCurrentConversation(conv);

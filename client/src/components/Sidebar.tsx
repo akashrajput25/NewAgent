@@ -37,6 +37,9 @@ export function Sidebar({ isOpen, onClose, onOpenProfile, onOpenSettings }: { is
   const handleNewChat = async () => {
     try {
       const conv = await createConversation(undefined, personality);
+      if (!conv || typeof conv.id !== 'number') {
+        throw new Error('Invalid conversation created');
+      }
       setConversations([conv, ...conversations]);
       setCurrentConversation(conv);
       setMessages([]);

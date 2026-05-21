@@ -187,6 +187,7 @@ router.post('/:conversationId/stream', async (req, res, next) => {
   } catch (error) {
     console.error('Chat stream error:', error);
     res.write(`data: ${JSON.stringify({ type: 'error', data: String(error) })}\n\n`);
+    res.write('data: [DONE]\n\n');
     res.end();
   }
 });

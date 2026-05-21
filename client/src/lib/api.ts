@@ -6,26 +6,42 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+function assertConversationId(id: number | undefined | null): asserts id is number {
+  if (typeof id !== 'number' || Number.isNaN(id)) {
+    throw new Error('Invalid conversation id');
+  }
+}
+
+function assertConversationResponse(data: unknown): asserts data is Conversation {
+  if (!data || typeof data !== 'object' || !('id' in data) || typeof (data as any).id !== 'number') {
+    throw new Error('Invalid conversation response from server');
+  }
+}
+
 export async function getConversations(search?: string): Promise<Conversation[]> {
   const { data } = await api.get('/conversations', { params: search ? { search } : undefined });
   return data;
 }
 
 export async function getConversation(id: number): Promise<{ conversation: Conversation; messages: Message[] }> {
+  assertConversationId(id);
   const { data } = await api.get(`/conversations/${id}`);
   return data;
 }
 
 export async function createConversation(title?: string, personality?: PersonalityMode): Promise<Conversation> {
   const { data } = await api.post('/conversations', { title, personality });
+  assertConversationResponse(data);
   return data;
 }
 
 export async function deleteConversation(id: number): Promise<void> {
+  assertConversationId(id);
   await api.delete(`/conversations/${id}`);
 }
 
 export async function updateConversation(id: number, updates: Partial<Conversation>): Promise<Conversation> {
+  assertConversationId(id);
   const { data } = await api.patch(`/conversations/${id}`, updates);
   return data;
 }
@@ -59,6 +75,7 @@ export async function sendMessageStream(
   if (!reader) throw new Error('No response body');
 
   const decoder = new TextDecoder();
+  let doneReceived = false;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -71,6 +88,7 @@ export async function sendMessageStream(
       if (line.startsWith('data: ')) {
         const data = line.slice(6);
         if (data === '[DONE]') {
+          doneReceived = true;
           onDone();
           return;
         }
@@ -82,12 +100,24 @@ export async function sendMessageStream(
             onThinkingChunk(parsed.data);
           } else if (parsed.type === 'tool') {
             onToolCall(parsed.data);
+          } else if (parsed.type === 'error') {
+            throw new Error(parsed.data);
+          } else {
+            onChunk(data);
           }
-        } catch {
-          onChunk(data);
+        } catch (error) {
+          if (error instanceof SyntaxError) {
+            onChunk(data);
+          } else {
+            throw error;
+          }
         }
       }
     }
+  }
+
+  if (!doneReceived) {
+    onDone();
   }
 }
 
@@ -118,6 +148,7 @@ export async function getDocument(id: number): Promise<{ id: number; text?: stri
 }
 
 export async function exportConversation(id: number, format: 'markdown' | 'json' = 'markdown'): Promise<Blob> {
+  assertConversationId(id);
   const response = await api.get(`/conversations/${id}/export`, {
     params: { format },
     responseType: 'blob',

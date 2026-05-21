@@ -76,6 +76,9 @@ export function CommandPalette({ isOpen, onClose }: Props) {
       action: async () => {
         try {
           const conv = await createConversation(undefined, personality);
+          if (!conv || typeof conv.id !== 'number') {
+            throw new Error('Invalid conversation created');
+          }
           setConversations([conv, ...conversations]);
           setCurrentConversation(conv);
           setMessages([]);

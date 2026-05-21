@@ -252,6 +252,8 @@ export function ChatInput({ isMobile }: { isMobile?: boolean }) {
       );
     } catch (err) {
       console.error('Send message error:', err);
+      const message = err instanceof Error ? err.message : String(err);
+      toast(`Failed to send message: ${message}`, 'error');
       setIsLoading(false);
       setStreamingContent('');
       setThinkingContent('');
@@ -300,6 +302,9 @@ export function ChatInput({ isMobile }: { isMobile?: boolean }) {
         const personality = useSettingsStore.getState().personality;
         import('../lib/api').then(({ createConversation }) => {
           createConversation(undefined, personality).then((conv) => {
+            if (!conv || typeof conv.id !== 'number') {
+              throw new Error('Invalid conversation created');
+            }
             const { conversations, setConversations, setCurrentConversation, setMessages } = useChatStore.getState();
             setConversations([conv, ...conversations]);
             setCurrentConversation(conv);

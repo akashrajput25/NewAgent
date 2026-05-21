@@ -1,10 +1,14 @@
-import Database from 'better-sqlite3';
-import { mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import initSqlJs from 'sql.js';
 import { config } from '../config.js';
-mkdirSync(dirname(config.dbPath), { recursive: true });
-const db = new Database(config.dbPath);
-db.pragma('journal_mode = WAL');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dbFilePath = config.dbPath;
+mkdirSync(dirname(dbFilePath), { recursive: true });
+const SQL = await initSqlJs({
+    locateFile: (file) => join(__dirname, '../../../node_modules/sql.js/dist', file),
+});
 const SCHEMA = `CREATE TABLE IF NOT EXISTS conversations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL DEFAULT 'New Conversation',
@@ -46,6 +50,57 @@ CREATE TABLE IF NOT EXISTS memories (
   source_conversation_id INTEGER REFERENCES conversations(id) ON DELETE SET NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );`;
+function saveDb(database) {
+    const buffer = Buffer.from(database.export());
+    writeFileSync(dbFilePath, buffer);
+}
+const db = existsSync(dbFilePath)
+    ? new SQL.Database(readFileSync(dbFilePath))
+    : new SQL.Database();
+try {
+    db.exec('PRAGMA journal_mode = WAL;');
+}
+catch {
+    // Ignore if PRAGMA is unsupported in this runtime
+}
 db.exec(SCHEMA);
-export default db;
+saveDb(db);
+const adapter = {
+    pragma: (_sql) => undefined,
+    exec: (sql) => {
+        db.exec(sql);
+        saveDb(db);
+    },
+    prepare: (sql) => {
+        return {
+            all: (...params) => {
+                const statement = db.prepare(sql);
+                statement.bind(params);
+                const rows = [];
+                while (statement.step()) {
+                    rows.push(statement.getAsObject());
+                }
+                statement.free();
+                return rows;
+            },
+            get: (...params) => {
+                const statement = db.prepare(sql);
+                statement.bind(params);
+                const row = statement.step() ? statement.getAsObject() : undefined;
+                statement.free();
+                return row;
+            },
+            run: (...params) => {
+                const statement = db.prepare(sql);
+                statement.bind(params);
+                statement.step();
+                statement.free();
+                saveDb(db);
+                const lastRow = db.exec('SELECT last_insert_rowid() AS id;');
+                return { lastInsertRowid: lastRow[0]?.values?.[0]?.[0] ?? undefined };
+            },
+        };
+    },
+};
+export default adapter;
 //# sourceMappingURL=connection.js.map
