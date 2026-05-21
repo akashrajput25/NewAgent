@@ -16,7 +16,7 @@ export const config = {
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   aiModel: process.env.AI_MODEL || 'claude-3-5-sonnet-20241022',
-  aiBaseUrl: process.env.AI_BASE_URL || undefined,
+  aiBaseUrl: process.env.AI_BASE_URL || '',
   dbPath: process.env.DB_PATH || join(__dirname, '../../data/agent.db'),
   uploadsDir: join(__dirname, '../../uploads'),
   generatedDir: join(__dirname, '../../public/generated'),

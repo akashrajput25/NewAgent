@@ -141,6 +141,17 @@ router.post('/:conversationId/stream', async (req, res, next) => {
           }
         : { role: 'user' as const, content: message };
 
+      // Debug log: print baseURL and model
+      console.log('[DEBUG] OpenAI client baseURL:', config.aiBaseUrl);
+      console.log('[DEBUG] OpenAI client model:', model || config.aiModel);
+
+      // Patch OpenAI client to log the full request URL
+      const origFetch = client.fetch;
+      client.fetch = async (...args) => {
+        console.log('[DEBUG] OpenAI fetch URL:', args[0]);
+        return origFetch.apply(client, args);
+      };
+
       const stream = await client.chat.completions.create({
         model: model || config.aiModel,
         messages: [
