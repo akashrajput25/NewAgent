@@ -43,9 +43,16 @@ export function Sidebar({ isOpen, onClose, onOpenProfile, onOpenSettings }: { is
       // Fetch the latest conversations from the backend
       const updatedConversations = await getConversations();
       setConversations(updatedConversations);
-      setCurrentConversation(conv);
-      // Optionally fetch messages for the new conversation (should be empty)
-      setMessages([]);
+      // Find the new conversation from the updated list (in case backend adds fields)
+      const newConv = updatedConversations.find((c) => c.id === conv.id) || conv;
+      setCurrentConversation(newConv);
+      // Fetch messages for the new conversation (should be empty, but ensures sync)
+      try {
+        const { messages } = await getConversation(newConv.id);
+        setMessages(messages);
+      } catch (err) {
+        setMessages([]);
+      }
       onClose();
     } catch (err) {
       toast('Failed to create conversation', 'error');
