@@ -75,13 +75,18 @@ router.get('/:id/export', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { title, personality } = req.body;
-  const result = db.prepare(
-    'INSERT INTO conversations (title, personality) VALUES (?, ?)'
-  ).run(title || 'New Conversation', personality || 'professional');
+  try {
+    const { title, personality } = req.body;
+    const result = db.prepare(
+      'INSERT INTO conversations (title, personality) VALUES (?, ?)'
+    ).run(title || 'New Conversation', personality || 'professional');
 
-  const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(result.lastInsertRowid) as Record<string, unknown>;
-  res.status(201).json(conversation);
+    const conversation = db.prepare('SELECT * FROM conversations WHERE id = ?').get(result.lastInsertRowid) as Record<string, unknown>;
+    res.status(201).json(conversation);
+  } catch (err) {
+    console.error('Failed to create conversation:', err);
+    res.status(500).json({ error: 'Failed to create conversation', details: err instanceof Error ? err.message : err });
+  }
 });
 
 router.delete('/:id', (req, res) => {
