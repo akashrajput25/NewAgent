@@ -52,4 +52,12 @@ app.get('*', (req, res, next) => {
 
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port}`);
+  // Debug: Log which provider is active and partial API key for Render troubleshooting
+  if (config.anthropicApiKey) {
+    console.log('[DEBUG] Using Anthropic API Key:', config.anthropicApiKey.slice(0, 6) + '...' + config.anthropicApiKey.slice(-4));
+  } else if (config.openaiApiKey) {
+    console.log('[DEBUG] Using OpenAI API Key:', config.openaiApiKey.slice(0, 6) + '...' + config.openaiApiKey.slice(-4));
+  } else {
+    console.log('[DEBUG] No AI API key detected.');
+  }
 });
